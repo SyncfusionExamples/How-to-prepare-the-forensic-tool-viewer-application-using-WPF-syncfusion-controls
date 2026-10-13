@@ -5,6 +5,7 @@
         xmlns:chart="clr-namespace:Syncfusion.UI.Xaml.Charts;assembly=Syncfusion.SfChart.WPF"
         xmlns:diagram="clr-namespace:Syncfusion.UI.Xaml.Diagram;assembly=Syncfusion.SfDiagram.WPF"
         xmlns:heatmap="clr-namespace:Syncfusion.UI.Xaml.HeatMap;assembly=Syncfusion.SfHeatMap.WPF"
+        xmlns:pdfViewer="clr-namespace:Syncfusion.Windows.PdfViewer;assembly=Syncfusion.PdfViewer.WPF"
         xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
         xmlns:beh="clr-namespace:ForensicViewer.Behaviors"
         xmlns:tools="clr-namespace:Syncfusion.Windows.Tools.Controls;assembly=Syncfusion.Tools.WPF"
@@ -540,6 +541,217 @@
                                                       ColorMappingCollection="{Binding ElementName=ActivityHeatMap, Path=ColorMappingCollection}"/>
                         </Grid>
                     </Border>
+                </Grid>
+            </tools:TabItemExt>
+
+            <!-- ============================================================= -->
+            <!-- TAB 5 : FILE + MEDIA ANALYSIS                                 -->
+            <!-- images, videos, documents, file types, sizes, recovery        -->
+            <!-- statuses; inherits shared device + timeline filters (#5)  -->
+            <!-- ============================================================= -->
+            <tools:TabItemExt Header="File + Media Analysis">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="8"/>
+                        <RowDefinition Height="230"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Top: filter bar + file grid + preview panel -->
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="380"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left: own filters -->
+                        <Border Grid.Column="0" Background="White" BorderBrush="#DDD" BorderThickness="1"
+                                CornerRadius="6" Padding="8">
+                            <StackPanel>
+                                <TextBlock Text="Filters" FontWeight="Bold" FontSize="12" Foreground="#333"
+                                           Margin="2,0,0,6"/>
+                                <TextBlock Text="File type" FontSize="11" Foreground="#555" Margin="2,4,0,2"/>
+                                <ComboBox ItemsSource="{Binding MediaAnalysis.FileTypes}"
+                                          SelectedItem="{Binding MediaAnalysis.SelectedFileType, Mode=TwoWay}"/>
+                                <TextBlock Text="Category" FontSize="11" Foreground="#555" Margin="2,8,0,2"/>
+                                <ComboBox ItemsSource="{Binding MediaAnalysis.Categories}"
+                                          SelectedItem="{Binding MediaAnalysis.SelectedCategory, Mode=TwoWay}"/>
+                                <TextBlock Text="Recovery status" FontSize="11" Foreground="#555" Margin="2,8,0,2"/>
+                                <ComboBox ItemsSource="{Binding MediaAnalysis.RecoveryStatuses}"
+                                          SelectedItem="{Binding MediaAnalysis.SelectedRecoveryStatus, Mode=TwoWay}"/>
+                                <Button Content="Clear Filters" Margin="2,12,2,0" Padding="6,3"
+                                        Background="#ECEFF1"
+                                        Command="{Binding MediaAnalysis.ClearFiltersCommand}"/>
+                                <TextBlock Text="Device and timeline filters are inherited from the header and
+                                                 range navigator." TextWrapping="Wrap" FontSize="9"
+                                           Foreground="#888" Margin="2,12,2,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Center: file grid -->
+                        <Border Grid.Column="2" Background="White" BorderBrush="#DDD" BorderThickness="1"
+                                CornerRadius="6" Padding="4">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <DockPanel Grid.Row="0" Margin="6,4,6,4">
+                                    <Button Content="Export File List" Background="#1E88E5"
+                                            Foreground="White" Padding="10,3" DockPanel.Dock="Right"
+                                            Command="{Binding MediaAnalysis.ExportFileListCommand}"/>
+                                    <TextBlock FontWeight="Bold" FontSize="13" VerticalAlignment="Center"
+                                               Foreground="#333"
+                                               Text="{Binding MediaAnalysis.FilteredCount, StringFormat='Recovered File Artifacts ({0})'}"/>
+                                </DockPanel>
+                                <grid:SfDataGrid x:Name="FileGrid" Grid.Row="1"
+                                                 AllowEditing="False" AllowGrouping="True"
+                                                 AllowFiltering="True" AllowSorting="True"
+                                                 AllowResizingColumns="True" AllowDraggingColumns="True"
+                                                 SelectionMode="Single" NavigationMode="Row"
+                                                 ColumnSizer="AutoWithLastColumnFill"
+                                                 ItemsSource="{Binding MediaAnalysis.FilteredFiles}"
+                                                 SelectedItem="{Binding MediaAnalysis.SelectedFile, Mode=TwoWay}"
+                                                 SelectionChanged="OnFileGridSelectionChanged">
+                                    <grid:SfDataGrid.Columns>
+                                        <grid:GridTextColumn MappingName="FileName" HeaderText="File Name" Width="170"/>
+                                        <grid:GridTextColumn MappingName="FileExtension" HeaderText="Ext" Width="60"/>
+                                        <grid:GridTextColumn MappingName="CategoryDisplay" HeaderText="Category" Width="90"/>
+                                        <grid:GridTextColumn MappingName="SizeDisplay" HeaderText="Size" Width="80"/>
+                                        <grid:GridTextColumn MappingName="RecoveryStatus" HeaderText="Status" Width="90"/>
+                                        <grid:GridTextColumn MappingName="DeviceName" HeaderText="Device" Width="170"/>
+                                        <grid:GridTextColumn MappingName="Application" HeaderText="Source App" Width="110"/>
+                                        <grid:GridTextColumn MappingName="CreatedDate" HeaderText="Created (UTC)" Width="150"/>
+                                    </grid:SfDataGrid.Columns>
+                                </grid:SfDataGrid>
+                            </Grid>
+                        </Border>
+
+                        <!-- Right: preview panel -->
+                        <Border Grid.Column="4" Background="White" BorderBrush="#DDD" BorderThickness="1"
+                                CornerRadius="6">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Border Grid.Row="0" Background="#ECEFF1" Padding="8,5" CornerRadius="6,6,0,0">
+                                    <TextBlock Text="File Preview" FontWeight="Bold" FontSize="13" Foreground="#333"/>
+                                </Border>
+
+                                <Grid Grid.Row="1">
+                                    <!-- Placeholder -->
+                                    <TextBlock x:Name="PreviewPlaceholder" Text="Select a file to preview"
+                                               Foreground="#999" FontSize="12"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <!-- PDF preview -->
+                                    <pdfViewer:PdfViewerControl x:Name="FilePdfViewer" Visibility="Visible"/>
+                                    <!-- Image preview -->
+                                    <Image x:Name="PreviewImage" Visibility="Visible" Stretch="Uniform"
+                                           Margin="8"/>
+                                    <!-- Generic metadata fallback -->
+                                    <ScrollViewer x:Name="PreviewMeta" Visibility="Collapsed"
+                                                  VerticalScrollBarVisibility="Auto">
+                                        <TextBlock x:Name="PreviewMetaText" FontSize="11" Foreground="#555"
+                                                   TextWrapping="Wrap" Margin="8"/>
+                                    </ScrollViewer>
+                                </Grid>
+
+                                <Border Grid.Row="2" Background="#FAFAFA" BorderBrush="#DDD"
+                                        BorderThickness="0,1,0,0" Padding="8,4">
+                                    <TextBlock FontSize="11" Foreground="#555" TextWrapping="Wrap"
+                                               Text="{Binding MediaAnalysis.SelectedFileSummary}"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- Bottom: charts row -->
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Background="White" BorderBrush="#DDD" BorderThickness="1"
+                                CornerRadius="6" Padding="6">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Files by Type" FontWeight="Bold" FontSize="12"
+                                           Foreground="#333" Margin="4,2,0,4"/>
+                                <chart:SfChart Grid.Row="1" AreaBorderThickness="0">
+                                    <chart:DoughnutSeries ItemsSource="{Binding MediaAnalysis.FileTypeCounts}"
+                                                          XBindingPath="Name" YBindingPath="Value"
+                                                          ListenPropertyChange="True"
+                                                          DoughnutCoefficient="0.6">
+                                        <chart:DoughnutSeries.AdornmentsInfo>
+                                            <chart:ChartAdornmentInfo ShowLabel="True" LabelPosition="Inner"
+                                                                      Foreground="White" FontSize="9"/>
+                                        </chart:DoughnutSeries.AdornmentsInfo>
+                                    </chart:DoughnutSeries>
+                                    <chart:SfChart.Legend>
+                                        <chart:ChartLegend DockPosition="Right" FontSize="9"/>
+                                    </chart:SfChart.Legend>
+                                </chart:SfChart>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="2" Background="White" BorderBrush="#DDD" BorderThickness="1"
+                                CornerRadius="6" Padding="6">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Storage by Category (MB)" FontWeight="Bold" FontSize="12"
+                                           Foreground="#333" Margin="4,2,0,4"/>
+                                <chart:SfChart Grid.Row="1" AreaBorderThickness="0">
+                                    <chart:BarSeries ItemsSource="{Binding MediaAnalysis.FileSizeByType}"
+                                                     XBindingPath="Name" YBindingPath="Value"
+                                                     ListenPropertyChange="True">
+                                        <chart:BarSeries.AdornmentsInfo>
+                                            <chart:ChartAdornmentInfo ShowLabel="True" FontSize="9"/>
+                                        </chart:BarSeries.AdornmentsInfo>
+                                    </chart:BarSeries>
+                                </chart:SfChart>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="4" Background="White" BorderBrush="#DDD" BorderThickness="1"
+                                CornerRadius="6" Padding="6">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Recovery Status" FontWeight="Bold" FontSize="12"
+                                           Foreground="#333" Margin="4,2,0,4"/>
+                                <chart:SfChart Grid.Row="1" AreaBorderThickness="0">
+                                    <chart:PieSeries ItemsSource="{Binding MediaAnalysis.RecoveryStatusCounts}"
+                                                     XBindingPath="Name" YBindingPath="Value"
+                                                     ListenPropertyChange="True">
+                                        <chart:PieSeries.AdornmentsInfo>
+                                            <chart:ChartAdornmentInfo ShowLabel="True" LabelPosition="Outer"
+                                                                      FontSize="9"/>
+                                        </chart:PieSeries.AdornmentsInfo>
+                                    </chart:PieSeries>
+                                    <chart:SfChart.Legend>
+                                        <chart:ChartLegend DockPosition="Right" FontSize="9"/>
+                                    </chart:SfChart.Legend>
+                                </chart:SfChart>
+                            </Grid>
+                        </Border>
+                    </Grid>
                 </Grid>
             </tools:TabItemExt>
 

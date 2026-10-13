@@ -1,8 +1,11 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Windows.Input;
 using ForensicViewer.Infrastructure;
 using ForensicViewer.Models;
 using ForensicViewer.Services;
-using System.Collections.ObjectModel;
-using System.Windows.Input;
 
 namespace ForensicViewer.ViewModels
 {
@@ -156,6 +159,9 @@ namespace ForensicViewer.ViewModels
         /// <summary>Supplied by the View so the PDF export can embed chart images without touching controls.</summary>
         public IChartSnapshotProvider SnapshotProvider { get; set; }
 
+        /// <summary>File & Media Analysis sub-ViewModel (5th tab): file artifacts + inherited filters.</summary>
+        public MediaAnalysisViewModel MediaAnalysis { get; }
+
         public MainViewModel() : this(50_000) { }
 
         public MainViewModel(int recordCount, IDialogService dialogs = null)
@@ -163,6 +169,10 @@ namespace ForensicViewer.ViewModels
             _dialogs = dialogs ?? new DialogService();
             _allRecords = SampleDataGenerator.Generate(recordCount);
             _graphBuilder = new RelationshipGraphBuilder(this);
+
+            // File & Media Analysis: own filter state + inherited device/timeline filters.
+            MediaAnalysis = new MediaAnalysisViewModel(_dialogs);
+            MediaAnalysis.Initialize(SampleDataGenerator.GenerateFileArtifacts(300));
 
             EvidenceTypes = new[] { "All" }.Concat(_allRecords.Select(r => r.EvidenceType.ToString()).Distinct().OrderBy(x => x)).ToList();
             Applications = new[] { "All" }.Concat(_allRecords.Select(r => r.Application).Distinct().OrderBy(x => x)).ToList();
@@ -235,6 +245,7 @@ namespace ForensicViewer.ViewModels
             OnPropertyChanged(nameof(FilteredRecords));
             RefreshStatus();
             RefreshCorrelation();
+            MediaAnalysis.SyncWithMainFilters(SelectedDevice, TimelineStart, TimelineEnd);
             if (SelectedTabIndex == GraphTabIndex) RebuildGraphModel();
 
             FilterChanged?.Invoke();

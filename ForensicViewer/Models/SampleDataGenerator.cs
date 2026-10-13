@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 
 namespace ForensicViewer.Models
@@ -126,6 +124,87 @@ namespace ForensicViewer.Models
                 records.Add(rec);
             }
             return records;
+        }
+
+        // ---------------- File artifacts (File & Media Analysis tab) ----------------
+
+        private static readonly (string Ext, long Min, long Max)[] FileProfiles =
+        {
+            (".pdf",   500_000,     50_000_000),
+            (".jpg",   100_000,     10_000_000),
+            (".png",   100_000,      8_000_000),
+            (".mp4", 10_000_000,    500_000_000),
+            (".docx",  500_000,     20_000_000),
+            (".xlsx",  300_000,     15_000_000),
+            (".zip",  1_000_000,    100_000_000),
+            (".txt",    10_000,      2_000_000),
+            (".html",   20_000,      3_000_000),
+            (".mp3",  2_000_000,     15_000_000),
+            (".gif",   200_000,      6_000_000),
+            (".avi", 20_000_000,    400_000_000),
+            (".csv",    50_000,      5_000_000),
+            (".pptx", 1_000_000,     40_000_000),
+        };
+
+        private static readonly string[] FileFolders =
+        {
+            "/data/media/", "/data/media/DCIM/", "/documents/", "/downloads/",
+            "/attachments/mail/", "/system/tmp/", "/backup/", "/whatsapp/media/"
+        };
+
+        /// <summary>
+        /// Generates synthetic recovered file artifacts (deterministic, seed 43)
+        /// covering images, videos, documents and archives with realistic size
+        /// distributions per type.
+        /// </summary>
+        public static List<FileArtifact> GenerateFileArtifacts(int count, string caseId = "CASE-2026-001")
+        {
+            var files = new List<FileArtifact>(count);
+            var random = new Random(43);
+            var start = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc);
+            var end = new DateTime(2026, 10, 10, 23, 59, 59, DateTimeKind.Utc);
+            var apps = new[] { "Photos", "Browser", "Mail", "Documents", "Media Player", "System", "WhatsApp" };
+            var nameStems =
+                "IMG DOC VID REP FIN ARC NOTE DATA SCAN AUDIO CAP LOG EXM PKG".Split(' ');
+
+            for (int i = 0; i < count; i++)
+            {
+                var (ext, min, max) = FileProfiles[random.Next(FileProfiles.Length)];
+                var name = $"{nameStems[random.Next(nameStems.Length)]}_{2043 + i:D4}{ext}";
+                var path = FileFolders[random.Next(FileFolders.Length)] + name;
+                var created = start.AddSeconds(random.Next((int)(end - start).TotalSeconds));
+                long size = min + (long)(random.NextDouble() * (max - min));
+
+                var file = new FileArtifact
+                {
+                    CaseId = caseId,
+                    FileName = name,
+                    FileExtension = ext,
+                    FileType = Services.FilePreviewService.DetermineMimeType(name),
+                    FilePath = path,
+                    FileSizeBytes = size,
+                    CreatedDate = created,
+                    ModifiedDate = created.AddMinutes(random.Next(0, 10000)),
+                    RecoveryStatus = (RecoveryStatus)random.Next(3),
+                    DeviceName = Devices[random.Next(Devices.Length)],
+                    Application = apps[random.Next(apps.Length)],
+                    Category = Services.FilePreviewService.GetMediaCategory(name)
+                };
+                file.HashMD5 = ComputeFileHash(file, "MD5");
+                file.HashSHA256 = ComputeFileHash(file, "SHA256");
+                files.Add(file);
+            }
+            return files;
+        }
+
+        private static string ComputeFileHash(FileArtifact f, string algorithm)
+        {
+            string raw = $"{f.FileId}|{f.CaseId}|{f.FileName}|{f.FileSizeBytes}|{f.CreatedDate:O}";
+            using var algo = algorithm == "MD5" ? MD5.Create() : (HashAlgorithm)SHA256.Create();
+            var hash = algo.ComputeHash(Encoding.UTF8.GetBytes(raw));
+            var sb = new StringBuilder(hash.Length * 2);
+            foreach (var b in hash) sb.Append(b.ToString("x2"));
+            return sb.ToString();
         }
 
         /// <summary>

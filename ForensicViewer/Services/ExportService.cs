@@ -61,6 +61,52 @@ namespace ForensicViewer.Services
             workbook.SaveAs(path);
         }
 
+        /// <summary>Exports the File & Media Analysis file list to Excel (FR-13).</summary>
+        public static void ExportFileListToExcel(string path, IReadOnlyList<FileArtifact> files)
+        {
+            using var engine = new ExcelEngine();
+            var workbook = engine.Excel.Workbooks.Create(1);
+            var sheet = workbook.Worksheets[0];
+
+            sheet.Range["A1"].Text = "Forensic Tool Viewer - File Artifacts Export";
+            sheet.Range["A2"].Text = "Case ID: CASE-2026-001";
+            sheet.Range["A3"].Text = $"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss} (local)";
+            sheet.Range["A4"].Text = $"File count: {files.Count:N0}";
+            sheet.Range["A1"].CellStyle.Font.Bold = true;
+
+            int headerRow = 6;
+            string[] headers = { "File Name", "Extension", "MIME Type", "Category", "SizeBytes",
+                                 "Size", "Device", "Application", "Status",
+                                 "Created (UTC)", "Modified (UTC)", "MD5", "SHA-256" };
+            for (int i = 0; i < headers.Length; i++)
+            {
+                sheet.Range[headerRow, i + 1].Text = headers[i];
+                sheet.Range[headerRow, i + 1].CellStyle.Font.Bold = true;
+            }
+
+            int row = headerRow + 1;
+            foreach (var f in files)
+            {
+                sheet.Range[row, 1].Text = f.FileName;
+                sheet.Range[row, 2].Text = f.FileExtension;
+                sheet.Range[row, 3].Text = f.FileType;
+                sheet.Range[row, 4].Text = f.Category.ToString();
+                sheet.Range[row, 5].Number = f.FileSizeBytes;
+                sheet.Range[row, 6].Text = f.SizeDisplay;
+                sheet.Range[row, 7].Text = f.DeviceName;
+                sheet.Range[row, 8].Text = f.Application;
+                sheet.Range[row, 9].Text = f.RecoveryStatus.ToString();
+                sheet.Range[row, 10].DateTime = f.CreatedDate;
+                sheet.Range[row, 11].DateTime = f.ModifiedDate;
+                sheet.Range[row, 12].Text = f.HashMD5;
+                sheet.Range[row, 13].Text = f.HashSHA256;
+                row++;
+            }
+
+            sheet.UsedRange.AutofitColumns();
+            workbook.SaveAs(path);
+        }
+
         public static void ExportPdf(string path, MainViewModel vm, IReadOnlyList<ChartSnapshot> snapshots)
         {
             using var doc = new Syncfusion.Pdf.PdfDocument();
