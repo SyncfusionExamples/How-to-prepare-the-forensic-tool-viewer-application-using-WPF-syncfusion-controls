@@ -18,7 +18,9 @@
     <PackageReference Include="Syncfusion.SfHeatMap.WPF" Version="35.1.39" />
     <PackageReference Include="Syncfusion.SfDiagram.WPF" Version="35.1.39" />
     <PackageReference Include="Syncfusion.SfShared.WPF" Version="35.1.39" />
+    <PackageReference Include="Syncfusion.SfSkinManager.WPF" Version="35.1.39" />
     <PackageReference Include="Syncfusion.Shared.WPF" Version="35.1.39" />
+    <PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" Version="35.1.39" />
     <PackageReference Include="Syncfusion.Tools.WPF" Version="35.1.39" />
     <PackageReference Include="Syncfusion.XlsIO.WPF" Version="35.1.39" />
     <PackageReference Include="Syncfusion.Pdf.Wpf" Version="35.1.39" />

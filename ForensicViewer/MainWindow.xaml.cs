@@ -1,6 +1,7 @@
 ﻿using ForensicViewer.Models;
 using ForensicViewer.Services;
 using ForensicViewer.ViewModels;
+using Syncfusion.SfSkinManager;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
@@ -21,6 +22,7 @@ namespace ForensicViewer
         {
             InitializeComponent();
             var vm = new MainViewModel(recordCount: 50_000) { SnapshotProvider = this };
+            SfSkinManager.SetTheme(this, new Theme("Windows11Light"));
             vm.MediaAnalysis.PropertyChanged += (s, e) =>
             {
                 if (e.PropertyName == nameof(MediaAnalysisViewModel.SelectedFile))
