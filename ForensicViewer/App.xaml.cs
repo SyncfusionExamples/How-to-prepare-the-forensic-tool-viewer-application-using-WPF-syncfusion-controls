@@ -1,5 +1,3 @@
-using Syncfusion.Licensing;
-using System;
 using System.IO;
 using System.Windows;
 

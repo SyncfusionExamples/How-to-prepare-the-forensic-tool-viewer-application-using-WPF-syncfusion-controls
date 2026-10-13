@@ -1,3 +1,5 @@
+﻿using System;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -54,7 +56,7 @@ namespace ForensicViewer.Models
             var random = new Random(42);
             var start = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc);
             var end = new DateTime(2026, 10, 10, 23, 59, 59, DateTimeKind.Utc);
-            long rangeSeconds = (long)(end - start).TotalSeconds;
+            var sampler = new ActivitySampler(start, end);
 
             for (int i = 0; i < totalRecords; i++)
             {
@@ -64,7 +66,7 @@ namespace ForensicViewer.Models
                 {
                     CaseId = "CASE-2026-001",
                     DeviceName = Devices[random.Next(Devices.Length)],
-                    Timestamp = start.AddSeconds(random.Next((int)Math.Min(rangeSeconds, int.MaxValue - 1))),
+                    Timestamp = sampler.Next(random),
                     SourceInfo = $"/evidence/orig/artifact_{i % 99:00}.db",
                     Counterparty = $"{Contacts[contactIdx]} ({Phones[contactIdx]})"
                 };
@@ -126,6 +128,94 @@ namespace ForensicViewer.Models
             return records;
         }
 
+        /// <summary>
+        /// Shapes timestamps so the Activity Heatmap shows every band (below 10 ... 400 per cell):
+        /// days are assigned to activity tiers and hours follow a business-hours or peak profile.
+        /// Counts are per 50K records (scale proportionally for other volumes).
+        /// </summary>
+        private sealed class ActivitySampler
+        {
+            // (days, records per day, usePeakProfile)
+            // Tuned so every (day,hour) cell lands INSIDE a legend band:
+            // Heavy peak ~500/cell (clear of 400), Busy peak ~250/cell (inside 201-300),
+            // and nothing falls in the unlabeled 301-399 gap.
+            private static readonly (int Days, double PerDay, bool Peak)[] Tiers =
+            {
+                (5, 2500, true),   // Heavy       peak hours ~500 / cell
+                (5, 1250, true),   // Busy        peak hours ~250 / cell
+                (8, 1800, false),  // Moderate    ~140 / cell
+                (8, 800,  false),  // Light       ~65  / cell
+                (20, 300, false),  // Low         ~25  / cell
+            };
+            private const double QuietPerDay = 40;  // remaining days: below 10 / cell
+
+            private static readonly double[] NormalProfile = BuildProfile(false);
+            private static readonly double[] PeakProfile = BuildProfile(true);
+
+            private readonly DateTime _start;
+            private readonly double[] _dayCum;
+            private readonly bool[] _dayPeak;
+
+            public ActivitySampler(DateTime start, DateTime end)
+            {
+                _start = start.Date;
+                int days = (int)(end.Date - _start).TotalDays + 1;
+                var perDay = new double[days];
+                _dayPeak = new bool[days];
+                for (int i = 0; i < days; i++) perDay[i] = QuietPerDay;
+
+                var order = new List<int>();
+                for (int i = 0; i < days; i++) order.Add(i);
+                var rnd = new Random(7);
+                for (int i = order.Count - 1; i > 0; i--)
+                {
+                    int j = rnd.Next(i + 1);
+                    (order[i], order[j]) = (order[j], order[i]);
+                }
+
+                int k = 0;
+                foreach (var tier in Tiers)
+                    for (int n = 0; n < tier.Days && k < order.Count; n++, k++)
+                    {
+                        perDay[order[k]] = tier.PerDay;
+                        _dayPeak[order[k]] = tier.Peak;
+                    }
+
+                _dayCum = new double[days];
+                double sum = 0;
+                for (int i = 0; i < days; i++) { sum += perDay[i]; _dayCum[i] = sum; }
+            }
+
+            public DateTime Next(Random random)
+            {
+                double r = random.NextDouble() * _dayCum[^1];
+                int day = Array.BinarySearch(_dayCum, r);
+                if (day < 0) day = ~day;
+                if (day >= _dayCum.Length) day = _dayCum.Length - 1;
+
+                var profile = _dayPeak[day] ? PeakProfile : NormalProfile;
+                double h = random.NextDouble();
+                int hour = 0;
+                while (hour < 23 && h > profile[hour]) hour++;
+
+                return _start.AddDays(day).AddHours(hour)
+                             .AddSeconds(random.Next(3600));
+            }
+
+            private static double[] BuildProfile(bool peak)
+            {
+                var w = new double[24];
+                for (int h = 0; h < 24; h++)
+                {
+                    if (peak) w[h] = (h >= 10 && h <= 13) ? 20 : 1;
+                    else w[h] = h < 7 ? 1 : h < 9 ? 4 : h < 18 ? 12 : h < 22 ? 6 : 2;
+                }
+                double total = 0; foreach (var x in w) total += x;
+                var cum = new double[24]; double acc = 0;
+                for (int h = 0; h < 24; h++) { acc += w[h] / total; cum[h] = acc; }
+                return cum;
+            }
+        }
         private static string ComputeHash(EvidenceRecord rec, string algorithm)
         {
             string raw = $"{rec.RecordId}|{rec.CaseId}|{rec.DeviceName}|{rec.Application}|{rec.EvidenceType}|{rec.Content}|{rec.Timestamp:O}";
