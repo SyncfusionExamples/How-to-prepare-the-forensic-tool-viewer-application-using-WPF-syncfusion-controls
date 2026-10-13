@@ -1,0 +1,763 @@
+﻿<Window x:Class="ForensicViewer.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:grid="clr-namespace:Syncfusion.UI.Xaml.Grid;assembly=Syncfusion.SfGrid.WPF"
+        xmlns:chart="clr-namespace:Syncfusion.UI.Xaml.Charts;assembly=Syncfusion.SfChart.WPF"
+        xmlns:diagram="clr-namespace:Syncfusion.UI.Xaml.Diagram;assembly=Syncfusion.SfDiagram.WPF"
+        xmlns:heatmap="clr-namespace:Syncfusion.UI.Xaml.HeatMap;assembly=Syncfusion.SfHeatMap.WPF"
+        xmlns:pdfViewer="clr-namespace:Syncfusion.Windows.PdfViewer;assembly=Syncfusion.PdfViewer.WPF"
+        xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+        xmlns:beh="clr-namespace:ForensicViewer.Behaviors"
+        xmlns:tools="clr-namespace:Syncfusion.Windows.Tools.Controls;assembly=Syncfusion.Tools.WPF"
+        Title="Forensic Tool Viewer â€” POC (Syncfusion WPF)" Height="900" Width="1500"
+        WindowStartupLocation="CenterScreen" WindowState="Maximized">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- header + filter bar -->
+            <RowDefinition Height="*"/>
+            <!-- tabs -->
+        </Grid.RowDefinitions>
+
+        <!-- ================= HEADER + SHARED FILTER BAR (FR-10) ================= -->
+        <Border Grid.Row="0" Background="#1E3A5F" Padding="14,10" BorderBrush="#0D2B47"
+                BorderThickness="0,0,0,2">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <!-- title -->
+                    <ColumnDefinition Width="*"/>
+                    <!-- filters -->
+                    <ColumnDefinition Width="Auto"/>
+                    <!-- status -->
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Forensic POC" FontSize="10" FontWeight="Bold" Foreground="#90CAF9"
+                               VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Forensic Tool Viewer" FontSize="17" FontWeight="Bold"
+                                   Foreground="White"/>
+                        <TextBlock Text="CASE-2026-001  -  Syncfusion WPF 35.1.39" FontSize="10"
+                                   Foreground="#9FB3C8"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
+                           Margin="16,0,16,0">
+                    <TextBlock Text="Type" Foreground="#CFE0F0" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <ComboBox x:Name="CboType" Width="115" ItemsSource="{Binding EvidenceTypes}"
+                              SelectedItem="{Binding SelectedEvidenceType, Mode=TwoWay}"/>
+
+                    <TextBlock Text="App" Foreground="#CFE0F0" VerticalAlignment="Center" Margin="10,0,4,0"/>
+                    <ComboBox x:Name="CboApp" Width="95" ItemsSource="{Binding Applications}"
+                              SelectedItem="{Binding SelectedApplication, Mode=TwoWay}"/>
+
+                    <TextBlock Text="Device" Foreground="#CFE0F0" VerticalAlignment="Center" Margin="10,0,4,0"/>
+                    <ComboBox x:Name="CboDevice" Width="155" ItemsSource="{Binding Devices}"
+                              SelectedItem="{Binding SelectedDevice, Mode=TwoWay}"/>
+
+                    <TextBox x:Name="TxtSearch" Width="170" VerticalContentAlignment="Center"
+                             Text="{Binding FreeTextSearch, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="Search content / counterparty / device"/>
+
+                    <Button x:Name="BtnClearAll" Content="Clear All" Margin="6,0,0,0"
+                            Padding="8,3" Background="#334E68" Foreground="White"
+                            BorderBrush="#5B7C99" Command="{Binding ClearAllCommand}"/>
+                </WrapPanel>
+
+                <Border Grid.Column="2" Background="#16304F" CornerRadius="6" Padding="10,4"
+                        VerticalAlignment="Center">
+                    <TextBlock x:Name="TxtStatus" Foreground="#B5E0FF" FontSize="11" Text="{Binding StatusText}"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- ================= TABS ================= -->
+        <tools:TabControlExt Grid.Row="1" x:Name="MainTabs" Background="#F5F7FA"
+                    SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}">
+
+            <!-- ============================================================= -->
+            <!-- TAB 1 : OVERVIEW - charts row + evidence grid + details       -->
+            <!-- ============================================================= -->
+            <tools:TabItemExt Header="Overview &amp; Evidence">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="220"/>
+                        <RowDefinition Height="8"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="330"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- charts row spans all columns -->
+                    <Grid Grid.Row="0" Grid.ColumnSpan="3">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="1.25*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Evidence by Type - doughnut -->
+                        <Border Grid.Column="0" Background="White" BorderBrush="#DDD"
+                                BorderThickness="1" CornerRadius="6" Padding="6">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Evidence by Type" FontWeight="Bold" FontSize="12"
+                                           Foreground="#333" Margin="4,2,0,4"/>
+                                <chart:SfChart Grid.Row="1" x:Name="ChartTypes" AreaBorderThickness="0"
+                                               >
+<i:Interaction.Behaviors><beh:ChartDrillBehavior Source="EvidenceType"/></i:Interaction.Behaviors>
+                                    <chart:SfChart.Behaviors>
+                                        <chart:ChartSelectionBehavior EnableSegmentSelection="True"
+                                                                       EnableSeriesSelection="False"/>
+                                    </chart:SfChart.Behaviors>
+                                    <chart:DoughnutSeries x:Name="DoughnutTypes" ItemsSource="{Binding EvidenceTypeCounts}" XBindingPath="Name"
+                                                         YBindingPath="Value"
+                                                         ListenPropertyChange="True"
+                                                         SegmentSelectionBrush="#5AA02C"
+                                                         DoughnutCoefficient="0.65">
+                                        <chart:DoughnutSeries.AdornmentsInfo>
+                                            <chart:ChartAdornmentInfo ShowLabel="True" LabelPosition="Inner"
+                                                                      Foreground="White" FontSize="9"/>
+                                        </chart:DoughnutSeries.AdornmentsInfo>
+                                    </chart:DoughnutSeries>
+                                    <chart:SfChart.Legend>
+                                        <chart:ChartLegend DockPosition="Bottom" Orientation="Horizontal"
+                                                           FontSize="10" ItemMargin="0,0,10,0"/>
+                                    </chart:SfChart.Legend>
+                                </chart:SfChart>
+                                <TextBlock Text="click a slice to filter" FontSize="9" Foreground="#888"
+                                           HorizontalAlignment="Right" Margin="0,2,4,2"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Evidence by Application - bar -->
+                        <Border Grid.Column="2" Background="White" BorderBrush="#DDD"
+                                BorderThickness="1" CornerRadius="6" Padding="6">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Evidence by Application" FontWeight="Bold" FontSize="12"
+                                           Foreground="#333" Margin="4,2,0,4"/>
+                                <chart:SfChart Grid.Row="1" x:Name="ChartApps" AreaBorderThickness="0"
+                                               >
+<i:Interaction.Behaviors><beh:ChartDrillBehavior Source="Application"/></i:Interaction.Behaviors>
+                                    <chart:SfChart.Behaviors>
+                                        <chart:ChartSelectionBehavior EnableSegmentSelection="True"
+                                                                       EnableSeriesSelection="False"/>
+                                    </chart:SfChart.Behaviors>
+                                    <chart:BarSeries x:Name="BarApps" ItemsSource="{Binding ApplicationCounts}" XBindingPath="Name" YBindingPath="Value"
+                                                     ListenPropertyChange="True"
+                                                     SegmentSelectionBrush="#1E88E5"/>
+                                </chart:SfChart>                                <TextBlock Text="click a bar to filter" FontSize="9" Foreground="#888"
+                                           HorizontalAlignment="Right" Margin="0,2,4,2"/>                            </Grid>
+                        </Border>
+
+                        <!-- Timeline with drag-range navigator (FR-02 + Phase 3) -->
+                        <Border Grid.Column="4" Background="White" BorderBrush="#DDD"
+                                BorderThickness="1" CornerRadius="6" Padding="6">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="34"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Evidence Timeline" FontWeight="Bold" FontSize="12"
+                                           Foreground="#333" Margin="4,2,0,4"/>
+                                <!-- Phase 3: drag-select date range - filters all views.
+                                     ItemsSource is set in code-behind to a STATIC full-range day
+                                     list (never mutated): binding it to the live TimelineCounts
+                                     caused a re-entrancy feedback loop (collection-changed -'
+                                     navigator recalc -' SelectedData -' filter -' clear again). -->
+                                <chart:SfDateTimeRangeNavigator Grid.Row="1" x:Name="RangeNav"
+                                                                XBindingPath="Time"
+                                                                ShowToolTip="True"
+                                                                ToolTipLabelFormat="MMM d yyyy">
+<i:Interaction.Behaviors><beh:RangeNavigatorBehavior/></i:Interaction.Behaviors></chart:SfDateTimeRangeNavigator>
+                                <chart:SfChart Grid.Row="2" x:Name="ChartTimeline" AreaBorderThickness="0"
+                                               >
+<i:Interaction.Behaviors><beh:ChartDrillBehavior Source=""/></i:Interaction.Behaviors>
+                                    <chart:SfChart.Behaviors>
+                                        <chart:ChartSelectionBehavior EnableSegmentSelection="True"
+                                                                       EnableSeriesSelection="False"/>
+                                    </chart:SfChart.Behaviors>
+                                    <chart:SfChart.PrimaryAxis>
+                                        <chart:DateTimeAxis LabelFormat="MMM d" ShowGridLines="False"/>
+                                    </chart:SfChart.PrimaryAxis>
+                                    <chart:ColumnSeries x:Name="SeriesTimeline" ItemsSource="{Binding TimelineCounts}" XBindingPath="Time"
+                                                        YBindingPath="Count"
+                                                        EnableAnimation="False" ListenPropertyChange="True"
+                                                        SegmentSelectionBrush="#FB8C00"/>
+                                </chart:SfChart>
+                                <TextBlock Grid.Row="2" Text="drag navigator thumbs above to filter by range" FontSize="9" Foreground="#888"
+                                           HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,4,2"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Top Contacts -->
+                        <Border Grid.Column="6" Background="White" BorderBrush="#DDD"
+                                BorderThickness="1" CornerRadius="6" Padding="6">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Top Contacts - Calls &amp; Msgs" FontWeight="Bold"
+                                           FontSize="12" Foreground="#333" Margin="4,2,0,4"/>
+                                <chart:SfChart Grid.Row="1" x:Name="ChartContacts" AreaBorderThickness="0"
+                                               >
+<i:Interaction.Behaviors><beh:ChartDrillBehavior Source="Counterparty"/></i:Interaction.Behaviors>
+                                    <chart:SfChart.Behaviors>
+                                        <chart:ChartSelectionBehavior EnableSegmentSelection="True"
+                                                                       EnableSeriesSelection="False"/>
+                                    </chart:SfChart.Behaviors>
+                                    <chart:BarSeries x:Name="BarContacts" ItemsSource="{Binding TopContacts}" XBindingPath="Name"
+                                                     YBindingPath="Value"
+                                                     ListenPropertyChange="True"
+                                                     SegmentSelectionBrush="#E53935"/>
+                                </chart:SfChart>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- Evidence grid (row 2, spans columns 0..1) -->
+                    <Border Grid.Row="2" Grid.Column="0" Background="White" BorderBrush="#DDD"
+                            BorderThickness="1" CornerRadius="6" Padding="4">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <DockPanel Grid.Row="0" Margin="6,4,6,4">
+                                <Button x:Name="BtnExportPdf" Content="Export PDF Summary"
+                                        Background="#C62828" Foreground="White" Padding="10,3"
+                                        Command="{Binding ExportPdfCommand}" DockPanel.Dock="Right" Margin="0,0,6,0"/>
+                                <Button x:Name="BtnExport" Content="Export to Excel"
+                                        Background="#1E88E5" Foreground="White" Padding="10,3"
+                                        Command="{Binding ExportExcelCommand}" DockPanel.Dock="Right"/>
+                                <Button x:Name="BtnClearDrill" Content="Clear chart filter"
+                                        Background="#ECEFF1" Padding="10,3" Margin="0,0,6,0"
+                                        Command="{Binding ClearDrillCommand}" DockPanel.Dock="Right"/>
+                                <TextBlock Text="Evidence Records" FontWeight="Bold" FontSize="13"
+                                           VerticalAlignment="Center" Foreground="#333"/>
+                            </DockPanel>
+                            <grid:SfDataGrid x:Name="EvidenceGrid" Grid.Row="1"
+                                             AllowEditing="False" AllowGrouping="True"
+                                             AllowFiltering="True" AllowSorting="True"
+                                             AllowResizingColumns="True" AllowDraggingColumns="True"
+                                             ShowGroupDropArea="True" AutoGenerateColumns="False"
+                                             SelectionMode="Single" NavigationMode="Row"
+                                             ColumnSizer="AutoWithLastColumnFill"
+                                             ItemsSource="{Binding FilteredRecords}"
+                                             SelectedItem="{Binding SelectedRecord, Mode=TwoWay}">
+                                <grid:SfDataGrid.Columns>
+                                    <grid:GridTextColumn MappingName="Timestamp" HeaderText="Timestamp" Width="150"/>
+                                    <grid:GridTextColumn MappingName="EvidenceType" HeaderText="Type"/>
+                                    <grid:GridTextColumn MappingName="Application" HeaderText="Application"/>
+                                    <grid:GridTextColumn MappingName="DeviceName" HeaderText="Device" Width="160"/>
+                                    <grid:GridTextColumn MappingName="Direction" HeaderText="Direction"/>
+                                    <grid:GridTextColumn MappingName="Counterparty" HeaderText="Counterparty" Width="180"/>
+                                    <grid:GridTextColumn MappingName="Content" HeaderText="Content" Width="260"/>
+                                    <grid:GridTextColumn MappingName="RecoveryStatus" HeaderText="Status"/>
+                                    <grid:GridTextColumn MappingName="SizeDisplay" HeaderText="Size" Width="80"/>
+                                </grid:SfDataGrid.Columns>
+                            </grid:SfDataGrid>
+                        </Grid>
+                    </Border>
+
+                    <!-- Details panel (row 2, column 2) -->
+                    <Border Grid.Row="2" Grid.Column="2" Background="White" BorderBrush="#DDD"
+                            BorderThickness="1" CornerRadius="6">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Border Background="#ECEFF1" Padding="8,5" CornerRadius="6,6,0,0">
+                                <TextBlock Text="Evidence Details &amp; Traceability" FontWeight="Bold"
+                                           FontSize="13" Foreground="#333"/>
+                            </Border>
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl x:Name="DetailsPanel" Margin="8,4,8,8" ItemsSource="{Binding DetailItems}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Text}" TextWrapping="Wrap" FontSize="12">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Margin" Value="0,2,0,2"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsHeader}" Value="True">
+                                                                <Setter Property="FontWeight" Value="Bold"/>
+                                                                <Setter Property="FontSize" Value="13"/>
+                                                                <Setter Property="Margin" Value="0,10,0,4"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </tools:TabItemExt>
+
+            <!-- ============================================================= -->
+            <!-- TAB 2 : RELATIONSHIP GRAPH (FR-05, Phase 2)                  -->
+            <!-- ============================================================= -->
+            <tools:TabItemExt Header="Relationship Graph">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Toolbar / legend / live status -->
+                    <Border Grid.Row="0" Background="White" BorderBrush="#DDD" BorderThickness="1"
+                            CornerRadius="6" Padding="10,6" Margin="0,0,0,6">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Orientation="Vertical">
+                                <TextBlock Text="Contact-to-device communication map" FontWeight="Bold"
+                                           FontSize="13" Foreground="#333"/>
+                                <TextBlock x:Name="GraphHint"
+                                           Text="Click a contact or device node to focus the whole app on it. Click it again (or Clear focus) to release."
+                                           Foreground="#666" FontSize="11" TextWrapping="Wrap"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
+                                <Ellipse Width="14" Height="14" Fill="#1565C0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Device" Margin="4,0,14,0" VerticalAlignment="Center" FontSize="11" Foreground="#444"/>
+                                <Ellipse Width="14" Height="14" Fill="#E53935" VerticalAlignment="Center"/>
+                                <TextBlock Text="Contact" Margin="4,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="#444"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button x:Name="BtnGraphResetView" Content="Reset view" Padding="12,4"
+                                        Background="#E3F2FD" BorderBrush="#90CAF9" Foreground="#0D47A1"
+                                        Margin="0,0,8,0" Command="{Binding ResetGraphViewCommand}"
+                                        ToolTip="Zoom / pan back to the initial fitted view"/>
+                                <Button x:Name="BtnGraphReset" Content="Clear focus" Padding="12,4"
+                                        Background="#ECEFF1" Command="{Binding ClearGraphFocusCommand}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- The graph canvas (SfDiagram injected in code-behind via GraphHost) -->
+                    <Border Grid.Row="1" Background="White" BorderBrush="#DDD" BorderThickness="1"
+                            CornerRadius="6" ClipToBounds="True">
+                        <Grid>
+                            <Grid x:Name="GraphHost" Margin="4"><i:Interaction.Behaviors><beh:GraphDiagramBehavior/></i:Interaction.Behaviors></Grid>
+                            <!-- hint overlay bottom-right -->
+                            <Border HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                    Background="#F0F4C3" Opacity="0.92" CornerRadius="4"
+                                    Padding="8,4" Margin="0,0,10,10">
+                                <TextBlock Text="scroll = zoom  /  drag background = pan"
+                                           FontSize="10" Foreground="#555"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- Clicked-node inspector -->
+                    <Border Grid.Row="2" Background="#FAFAFA" BorderBrush="#DDD" BorderThickness="1"
+                            CornerRadius="6" Padding="10,6" Margin="0,6,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Selected node:" FontWeight="Bold" Foreground="#333"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock x:Name="GraphSelectionInfo" Text="{Binding GraphSelectionInfo}"
+                                       Foreground="#1565C0" FontWeight="SemiBold"
+                                       VerticalAlignment="Center" Margin="6,0,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </tools:TabItemExt>
+
+            <!-- ============================================================= -->
+            <!-- TAB 3 : CORRELATION (FR-06, Phase 2)                          -->
+            <!-- ============================================================= -->
+            <tools:TabItemExt Header="Correlation">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="1.1*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Background="White" BorderBrush="#DDD" BorderThickness="1"
+                            CornerRadius="6" Padding="10,6" Margin="0,0,0,6">
+                        <TextBlock x:Name="CorrelationInstruction"
+                                   Text="Select a record in the grid below - related evidence appears under it"
+                                   FontWeight="Bold" Foreground="#333"/>
+                    </Border>
+
+                    <!-- master grid (same shared EvidenceGrid items) -->
+                    <Border Grid.Row="1" Background="White" BorderBrush="#DDD" BorderThickness="1"
+                            CornerRadius="6" Padding="4">
+                        <grid:SfDataGrid x:Name="CorrelationSourceGrid"
+                                         AllowEditing="False" AllowGrouping="False"
+                                         AllowFiltering="True" AllowSorting="True"
+                                         AllowResizingColumns="True" AutoGenerateColumns="False"
+                                         SelectionMode="Single" NavigationMode="Row"
+                                         ColumnSizer="AutoWithLastColumnFill"
+                                         ItemsSource="{Binding FilteredRecords}"
+                                         SelectedItem="{Binding CorrelationSelectedRecord, Mode=TwoWay}">
+                            <grid:SfDataGrid.Columns>
+                                <grid:GridTextColumn MappingName="Timestamp" HeaderText="Timestamp" Width="150"/>
+                                <grid:GridTextColumn MappingName="EvidenceType" HeaderText="Type"/>
+                                <grid:GridTextColumn MappingName="Application" HeaderText="Application"/>
+                                <grid:GridTextColumn MappingName="DeviceName" HeaderText="Device" Width="160"/>
+                                <grid:GridTextColumn MappingName="Counterparty" HeaderText="Counterparty" Width="180"/>
+                                <grid:GridTextColumn MappingName="Content" HeaderText="Content" Width="260"/>
+                            </grid:SfDataGrid.Columns>
+                        </grid:SfDataGrid>
+                    </Border>
+
+                    <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" Background="Transparent"/>
+
+                    <!-- related grid -->
+                    <Border Grid.Row="3" Background="White" BorderBrush="#DDD" BorderThickness="1"
+                            CornerRadius="6" Padding="4">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Orientation="Horizontal" Margin="6,4,0,4"
+                                        Background="#FFF8E1" >
+                                <TextBlock x:Name="CorrelationSummary" FontWeight="Bold"
+                                           Foreground="#795548" FontSize="12"
+                                           Text="{Binding CorrelationSummary}"/>
+                            </StackPanel>
+                            <grid:SfDataGrid x:Name="RelatedGrid" Grid.Row="1"
+                                             AllowEditing="False" AllowGrouping="False"
+                                             AllowFiltering="False" AllowSorting="True"
+                                             AllowResizingColumns="True" AutoGenerateColumns="False"
+                                             ItemsSource="{Binding RelatedRecords}"
+                                             SelectionMode="Single"
+                                             ColumnSizer="AutoWithLastColumnFill">
+                                <grid:SfDataGrid.Columns>
+                                    <grid:GridTextColumn MappingName="Timestamp" HeaderText="Timestamp" Width="150"/>
+                                    <grid:GridTextColumn MappingName="EvidenceType" HeaderText="Type"/>
+                                    <grid:GridTextColumn MappingName="Application" HeaderText="Application"/>
+                                    <grid:GridTextColumn MappingName="Direction" HeaderText="Direction"/>
+                                    <grid:GridTextColumn MappingName="Counterparty" HeaderText="Counterparty" Width="180"/>
+                                    <grid:GridTextColumn MappingName="Content" HeaderText="Content" Width="260"/>
+                                    <grid:GridTextColumn MappingName="RecoveryStatus" HeaderText="Status"/>
+                                </grid:SfDataGrid.Columns>
+                            </grid:SfDataGrid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </tools:TabItemExt>
+
+            <!-- ============================================================= -->
+            <!-- TAB 4 : ACTIVITY HEATMAP (FR-07, Phase 3 add-on)             -->
+            <!-- day x hour activity matrix from shared filtered records      -->
+            <!-- ============================================================= -->
+            <tools:TabItemExt Header="Activity Heatmap">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Background="White" BorderBrush="#DDD" BorderThickness="1"
+                            CornerRadius="6" Padding="10,6" Margin="0,0,0,6">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Case activity by day and hour - " FontWeight="Bold"
+                                       Foreground="#333" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="HeatMapHint" Text="{Binding HeatMapHint}"
+                                       Foreground="#666" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="1" Background="White" BorderBrush="#DDD" BorderThickness="1"
+                            CornerRadius="6" ClipToBounds="True">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="220"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- Cell-mapping heatmap: rows = days, columns = hours.
+                                 NOTE: SfHeatMap v35 raises no click events itself; the
+                                 drill-down is wired via PreviewMouseLeftButtonDown
+                                 hit-testing in code-behind. -->
+                            <heatmap:SfHeatMap x:Name="ActivityHeatMap" Grid.Column="0"
+                                               ItemsSource="{Binding HeatMapData}"
+                                               MinWidth="600">
+<i:Interaction.Behaviors><beh:HeatMapClickBehavior/></i:Interaction.Behaviors>
+                                <heatmap:SfHeatMap.ItemsMapping>
+                                    <heatmap:CellMapping>
+                                        <heatmap:CellMapping.Column>
+                                            <heatmap:ColumnMapping PropertyName="HourLabel" DisplayName="Hour"/>
+                                        </heatmap:CellMapping.Column>
+                                        <heatmap:CellMapping.Row>
+                                            <heatmap:ColumnMapping PropertyName="DayLabel" DisplayName="Day"/>
+                                        </heatmap:CellMapping.Row>
+                                        <heatmap:CellMapping.Value>
+                                            <heatmap:ColumnMapping PropertyName="BandValue" DisplayName="Records"/>
+                                        </heatmap:CellMapping.Value>
+                                    </heatmap:CellMapping>
+                                </heatmap:SfHeatMap.ItemsMapping>
+                                <heatmap:SfHeatMap.ColorMappingCollection>
+                                    <heatmap:ColorMappingCollection>
+                                        <heatmap:ColorMapping Color="#E3F2FD" Value="0" Label="Below range (&lt;10)"/>
+                                    <heatmap:ColorMapping Color="#BBDEFB" Value="10" Label="Low (10-50)"/>
+                                    <heatmap:ColorMapping Color="#90CAF9" Value="50" Label="Light (51-100)"/>
+                                    <heatmap:ColorMapping Color="#64B5F6" Value="100" Label="Moderate (101-200)"/>
+                                    <heatmap:ColorMapping Color="#42A5F5" Value="200" Label="Busy (201-300)"/>
+                                    <heatmap:ColorMapping Color="#1565C0" Value="400" Label="Heavy (400+)"/>
+                                    </heatmap:ColorMappingCollection>
+                                </heatmap:SfHeatMap.ColorMappingCollection>
+                            </heatmap:SfHeatMap>
+
+                            <!-- Legend â€” List mode with range labels (nicer to read than gradient for counts) -->
+                            <heatmap:SfHeatMapLegend Grid.Column="1" x:Name="HeatMapLegend"
+                                                      LegendMode="List" Orientation="Vertical"
+                                                      ShowLabel="True" Margin="8"
+                                                      ColorMappingCollection="{Binding ElementName=ActivityHeatMap, Path=ColorMappingCollection}"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </tools:TabItemExt>
+
+            <!-- ============================================================= -->
+            <!-- TAB 5 : FILE + MEDIA ANALYSIS                                 -->
+            <!-- images, videos, documents, file types, sizes, recovery        -->
+            <!-- statuses; inherits shared device + timeline filters (#5)  -->
+            <!-- ============================================================= -->
+            <tools:TabItemExt Header="File + Media Analysis">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="8"/>
+                        <RowDefinition Height="230"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Top: filter bar + file grid + preview panel -->
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="380"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left: own filters -->
+                        <Border Grid.Column="0" Background="White" BorderBrush="#DDD" BorderThickness="1"
+                                CornerRadius="6" Padding="8">
+                            <StackPanel>
+                                <TextBlock Text="Filters" FontWeight="Bold" FontSize="12" Foreground="#333"
+                                           Margin="2,0,0,6"/>
+                                <TextBlock Text="File type" FontSize="11" Foreground="#555" Margin="2,4,0,2"/>
+                                <ComboBox ItemsSource="{Binding MediaAnalysis.FileTypes}"
+                                          SelectedItem="{Binding MediaAnalysis.SelectedFileType, Mode=TwoWay}"/>
+                                <TextBlock Text="Category" FontSize="11" Foreground="#555" Margin="2,8,0,2"/>
+                                <ComboBox ItemsSource="{Binding MediaAnalysis.Categories}"
+                                          SelectedItem="{Binding MediaAnalysis.SelectedCategory, Mode=TwoWay}"/>
+                                <TextBlock Text="Recovery status" FontSize="11" Foreground="#555" Margin="2,8,0,2"/>
+                                <ComboBox ItemsSource="{Binding MediaAnalysis.RecoveryStatuses}"
+                                          SelectedItem="{Binding MediaAnalysis.SelectedRecoveryStatus, Mode=TwoWay}"/>
+                                <Button Content="Clear Filters" Margin="2,12,2,0" Padding="6,3"
+                                        Background="#ECEFF1"
+                                        Command="{Binding MediaAnalysis.ClearFiltersCommand}"/>
+                                <TextBlock Text="Device and timeline filters are inherited from the header and
+                                                 range navigator." TextWrapping="Wrap" FontSize="9"
+                                           Foreground="#888" Margin="2,12,2,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Center: file grid -->
+                        <Border Grid.Column="2" Background="White" BorderBrush="#DDD" BorderThickness="1"
+                                CornerRadius="6" Padding="4">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <DockPanel Grid.Row="0" Margin="6,4,6,4">
+                                    <Button Content="Export File List" Background="#1E88E5"
+                                            Foreground="White" Padding="10,3" DockPanel.Dock="Right"
+                                            Command="{Binding MediaAnalysis.ExportFileListCommand}"/>
+                                    <TextBlock FontWeight="Bold" FontSize="13" VerticalAlignment="Center"
+                                               Foreground="#333"
+                                               Text="{Binding MediaAnalysis.FilteredCount, StringFormat='Recovered File Artifacts ({0})'}"/>
+                                </DockPanel>
+                                <grid:SfDataGrid x:Name="FileGrid" Grid.Row="1"
+                                                 AllowEditing="False" AllowGrouping="True"
+                                                 AllowFiltering="True" AllowSorting="True"
+                                                 AllowResizingColumns="True" AllowDraggingColumns="True"
+                                                 SelectionMode="Single" NavigationMode="Row"
+                                                 ColumnSizer="AutoWithLastColumnFill"
+                                                 ItemsSource="{Binding MediaAnalysis.FilteredFiles}"
+                                                 SelectedItem="{Binding MediaAnalysis.SelectedFile, Mode=TwoWay}"
+                                                 SelectionChanged="OnFileGridSelectionChanged">
+                                    <grid:SfDataGrid.Columns>
+                                        <grid:GridTextColumn MappingName="FileName" HeaderText="File Name" Width="170"/>
+                                        <grid:GridTextColumn MappingName="FileExtension" HeaderText="Ext" Width="60"/>
+                                        <grid:GridTextColumn MappingName="CategoryDisplay" HeaderText="Category" Width="90"/>
+                                        <grid:GridTextColumn MappingName="SizeDisplay" HeaderText="Size" Width="80"/>
+                                        <grid:GridTextColumn MappingName="RecoveryStatus" HeaderText="Status" Width="90"/>
+                                        <grid:GridTextColumn MappingName="DeviceName" HeaderText="Device" Width="170"/>
+                                        <grid:GridTextColumn MappingName="Application" HeaderText="Source App" Width="110"/>
+                                        <grid:GridTextColumn MappingName="CreatedDate" HeaderText="Created (UTC)" Width="150"/>
+                                    </grid:SfDataGrid.Columns>
+                                </grid:SfDataGrid>
+                            </Grid>
+                        </Border>
+
+                        <!-- Right: preview panel -->
+                        <Border Grid.Column="4" Background="White" BorderBrush="#DDD" BorderThickness="1"
+                                CornerRadius="6">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Border Grid.Row="0" Background="#ECEFF1" Padding="8,5" CornerRadius="6,6,0,0">
+                                    <TextBlock Text="File Preview" FontWeight="Bold" FontSize="13" Foreground="#333"/>
+                                </Border>
+
+                                <Grid Grid.Row="1">
+                                    <!-- Placeholder -->
+                                    <TextBlock x:Name="PreviewPlaceholder" Text="Select a file to preview"
+                                               Foreground="#999" FontSize="12"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <!-- PDF preview -->
+                                    <pdfViewer:PdfViewerControl x:Name="FilePdfViewer" Visibility="Visible"/>
+                                    <!-- Image preview -->
+                                    <Image x:Name="PreviewImage" Visibility="Visible" Stretch="Uniform"
+                                           Margin="8"/>
+                                    <!-- Generic metadata fallback -->
+                                    <ScrollViewer x:Name="PreviewMeta" Visibility="Collapsed"
+                                                  VerticalScrollBarVisibility="Auto">
+                                        <TextBlock x:Name="PreviewMetaText" FontSize="11" Foreground="#555"
+                                                   TextWrapping="Wrap" Margin="8"/>
+                                    </ScrollViewer>
+                                </Grid>
+
+                                <Border Grid.Row="2" Background="#FAFAFA" BorderBrush="#DDD"
+                                        BorderThickness="0,1,0,0" Padding="8,4">
+                                    <TextBlock FontSize="11" Foreground="#555" TextWrapping="Wrap"
+                                               Text="{Binding MediaAnalysis.SelectedFileSummary}"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- Bottom: charts row -->
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Background="White" BorderBrush="#DDD" BorderThickness="1"
+                                CornerRadius="6" Padding="6">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Files by Type" FontWeight="Bold" FontSize="12"
+                                           Foreground="#333" Margin="4,2,0,4"/>
+                                <chart:SfChart Grid.Row="1" AreaBorderThickness="0">
+                                    <chart:DoughnutSeries ItemsSource="{Binding MediaAnalysis.FileTypeCounts}"
+                                                          XBindingPath="Name" YBindingPath="Value"
+                                                          ListenPropertyChange="True"
+                                                          DoughnutCoefficient="0.6">
+                                        <chart:DoughnutSeries.AdornmentsInfo>
+                                            <chart:ChartAdornmentInfo ShowLabel="True" LabelPosition="Inner"
+                                                                      Foreground="White" FontSize="9"/>
+                                        </chart:DoughnutSeries.AdornmentsInfo>
+                                    </chart:DoughnutSeries>
+                                    <chart:SfChart.Legend>
+                                        <chart:ChartLegend DockPosition="Right" FontSize="9"/>
+                                    </chart:SfChart.Legend>
+                                </chart:SfChart>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="2" Background="White" BorderBrush="#DDD" BorderThickness="1"
+                                CornerRadius="6" Padding="6">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Storage by Category (MB)" FontWeight="Bold" FontSize="12"
+                                           Foreground="#333" Margin="4,2,0,4"/>
+                                <chart:SfChart Grid.Row="1" AreaBorderThickness="0">
+                                    <chart:BarSeries ItemsSource="{Binding MediaAnalysis.FileSizeByType}"
+                                                     XBindingPath="Name" YBindingPath="Value"
+                                                     ListenPropertyChange="True">
+                                        <chart:BarSeries.AdornmentsInfo>
+                                            <chart:ChartAdornmentInfo ShowLabel="True" FontSize="9"/>
+                                        </chart:BarSeries.AdornmentsInfo>
+                                    </chart:BarSeries>
+                                </chart:SfChart>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="4" Background="White" BorderBrush="#DDD" BorderThickness="1"
+                                CornerRadius="6" Padding="6">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="Recovery Status" FontWeight="Bold" FontSize="12"
+                                           Foreground="#333" Margin="4,2,0,4"/>
+                                <chart:SfChart Grid.Row="1" AreaBorderThickness="0">
+                                    <chart:PieSeries ItemsSource="{Binding MediaAnalysis.RecoveryStatusCounts}"
+                                                     XBindingPath="Name" YBindingPath="Value"
+                                                     ListenPropertyChange="True">
+                                        <chart:PieSeries.AdornmentsInfo>
+                                            <chart:ChartAdornmentInfo ShowLabel="True" LabelPosition="Outer"
+                                                                      FontSize="9"/>
+                                        </chart:PieSeries.AdornmentsInfo>
+                                    </chart:PieSeries>
+                                    <chart:SfChart.Legend>
+                                        <chart:ChartLegend DockPosition="Right" FontSize="9"/>
+                                    </chart:SfChart.Legend>
+                                </chart:SfChart>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </tools:TabItemExt>
+
+        </tools:TabControlExt>
+    </Grid>
+</Window>
+
+
+
